@@ -23,8 +23,7 @@
     "express": "^4.16.2",
     "jsonwebtoken": "^8.1.0",
     "mongoose": "^4.13.5",
-    "passport": "^0.4.0",
-    "passport-jwt": "^3.0.1"
+    "randomstring": "^1.1.5"
   },
   "devDependencies": {
     "eslint": "^4.12.0",
