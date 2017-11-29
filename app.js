@@ -6,8 +6,28 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-require('dotenv').config({ path: 'variables.env' });
+app.use((req, res, next) => {  
+    res.json({
+        status: 'error',
+        message: 'not found',
+    });
+  });
 
-app.listen(3000, () => {
+app.use((err, req, res, next) => {  
+    res.json({
+        status: 'error',
+        message: 'server error',
+    });
+  });
+
+require('dotenv').config({path: 'variables.env'});
+
+mongoose.connect(process.env.DATABASE, {useMongoClient: true});
+mongoose.Promise = global.Promise;
+mongoose.connection.on('error', (err) => {
+  console.error(err.message);
+});
+
+app.listen(process.env.PORT || 3000, () => {
     console.log(`Express running`);
 });
