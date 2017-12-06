@@ -1,24 +1,29 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const routes = require('./routes/index');
 
 const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-app.use((req, res, next) => {  
+app.use('/', routes);
+
+app.use((req, res, next) => {
     res.json({
         status: 'error',
         message: 'not found',
     });
   });
 
-app.use((err, req, res, next) => {  
+app.use((err, req, res, next) => {
+    console.log(err);
     res.json({
         status: 'error',
-        message: 'server error',
+        message: err,
     });
-  });
+});
 
 require('dotenv').config({path: 'variables.env'});
 

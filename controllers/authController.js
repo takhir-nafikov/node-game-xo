@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
 
 exports.createToken = (req, res, next) => {
-    let token = jwt.sign(req.name, process.env.SECRET, {expiresIn: 3600}); // 1 hour
+    const payload = {
+        name: req.body.name,
+    };
+    let token = jwt.sign(payload, process.env.SECRET, {expiresIn: 3600}); // 1 hour
     req.accessToken = token;
     next();
 };
@@ -21,7 +24,7 @@ exports.verifyToken = (req, res, next) => {
                 message: 'Failed to authenticate token',
             });
         }
-        req.username = decoded;
+        req.username = decoded.name;
         next();
     });
 };

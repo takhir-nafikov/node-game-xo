@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const gameSchema = mongoose.Schema({
     firstPlayer: String,
     secondPlayer: String,
-    field: [String],
+    field: [[String]],
     turn: String,
     token: String,
     winner: String,
