@@ -1,9 +1,11 @@
 const randomstring = require('randomstring');
 const Game = require('../models/Game');
+const handler = require('../handlers/checkHandler');
 
 const EMPTY_SIGN = 'E';
 const FIRST_PLAYER_SIGN = 'X';
 const SECOND_PLAYER_SIGN = 'O';
+const FIVE_MINUTE = 300000;
 
 exports.createGame = async (req, res) => {
     try {
@@ -32,6 +34,7 @@ exports.createGame = async (req, res) => {
             token: gameToken,
             size: req.body.size,
             winner: undefined,
+            endGame: Date.now() + FIVE_MINUTE, // 5 minute
         });
 
         await game.save();
@@ -59,6 +62,7 @@ exports.joinGame = async (req, res) => {
             });
         }
         if (game.secondPlayer === undefined) {
+            game.endGame = Date.now() + FIVE_MINUTE;
             game.secondPlayer = req.body.name;
             await game.save();
         }
@@ -84,13 +88,23 @@ exports.getState = async (req, res) => {
                 message: 'not find game',
             });
         }
-        res.json({
-            status: 'ok',
-            turn: req.username === game.turn ? true : false,
-            duration: Date.now() - game.created,
-            field: game.field,
-            winner: game.winner,
-        });
+
+        if (Date.now() > game.endGame) {
+            await game.save(); // ?
+            await Game.remove({token: req.params.gameToken});
+            res.json({
+                status: 'error',
+                message: 'game deleted',
+            });
+        } else {
+            res.json({
+                status: 'ok',
+                turn: req.username === game.turn ? true : false,
+                duration: Date.now() - game.created,
+                field: game.field,
+                winner: game.winner,
+            });
+        }
     } catch (err) {
         res.json({
             status: 'error',
@@ -99,7 +113,7 @@ exports.getState = async (req, res) => {
     }
 };
 
-exports.makeMove = async (req, res) => {
+exports.makeMove = async (req, res, next) => {
     try {
         const game = await Game.findOne({token: req.body.gameToken});
         if (game.winner !== undefined) {
@@ -135,10 +149,28 @@ exports.makeMove = async (req, res) => {
         game.field[req.body.row - 1].splice(req.body.col - 1, 1, sign);
 
         game.turn = game.turn === game.firstPlayer ? game.secondPlayer : game.firstPlayer;
+        game.endGame = Date.now() + FIVE_MINUTE;
 
-        if (checkDiagonal(game.field, game.size, FIRST_PLAYER_SIGN) || checkLanes(game.field, game.size, FIRST_PLAYER_SIGN)) {
+        await game.save();
+
+        next();
+    } catch (err) {
+        res.json({
+            status: 'error',
+            message: 'cannot make move',
+        });
+    }
+};
+
+exports.checkWinner = async (req, res) => {
+    try {
+        const game = await Game.findOne({token: req.body.gameToken});
+
+        if (handler.checkDiagonal(game.field, game.size, FIRST_PLAYER_SIGN)
+            || handler.checkLanes(game.field, game.size, FIRST_PLAYER_SIGN)) {
             game.winner = game.firstPlayer;
-        } else if (checkDiagonal(game.field, game.size, SECOND_PLAYER_SIGN) || checkLanes(game.field, game.size, SECOND_PLAYER_SIGN)) {
+        } else if (handler.checkDiagonal(game.field, game.size, SECOND_PLAYER_SIGN)
+            || handler.checkLanes(game.field, game.size, SECOND_PLAYER_SIGN)) {
             game.winner = game.secondPlayer;
         }
 
@@ -151,48 +183,7 @@ exports.makeMove = async (req, res) => {
     } catch (err) {
         res.json({
             status: 'error',
-            message: 'cannot make move',
+            message: 'cannot find winner',
         });
     }
-};
-
-/**
- * @param {*} matrix
- * @param {*} size
- * @param {*} symb
- * @return {*}
- */
-function checkDiagonal(matrix, size, symb) { 
-    let toright = true;
-    let toleft = true;
-    for (let i = 0; i < size; i++) {
-        toright &= (matrix[i][i] == symb);
-        toleft &= (matrix[size-i-1][i] == symb);
-    }
-
-    if (toright || toleft) return true;
-
-    return false;
-};
-
-/**
- * @param {*} matrix
- * @param {*} size
- * @param {*} symb
- * @return {*}
- */
-function checkLanes(matrix, size, symb) { 
-    let cols;
-    let rows;
-    for (let col = 0; col < size; col++) {
-        cols = true;
-        rows = true;
-        for (let row = 0; row < size; row++) {
-            cols &= (matrix[col][row] == symb);
-            rows &= (matrix[row][col] == symb);
-        }
-        if (cols || rows) return true; 
-    }
-
-    return false;
 };

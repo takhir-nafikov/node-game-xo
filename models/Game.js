@@ -11,7 +11,10 @@ const gameSchema = mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    endGame: Date,
     size: Number,
+}, {
+    collection: 'games',
 });
 
 module.exports = mongoose.model('Game', gameSchema);

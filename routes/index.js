@@ -5,7 +5,7 @@ const authController = require('../controllers/authController');
 
 router.post('/new_game', authController.createToken, gameController.createGame);
 router.post('/join_game', authController.createToken, gameController.joinGame);
-router.post('/make_move', authController.verifyToken, gameController.makeMove);
+router.post('/make_move', authController.verifyToken, gameController.makeMove, gameController.checkWinner);
 router.get('/state/:gameToken', authController.verifyToken, gameController.getState);
 
 module.exports = router;
